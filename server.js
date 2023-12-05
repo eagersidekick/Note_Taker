@@ -5,7 +5,6 @@ const app = express();
 //other dependencies
 const fs = require('fs');
 const path = require('path');
-const db = require('./db/db.json')
 
 //setting up the PORT
 const PORT = process.env.PORT || 3001;
@@ -27,6 +26,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '/public/index.html'));
 });
 
+
 //API route that returns all notes as JSON objects
 app.get('/api/notes', (req, res) => {
     fs.readFile(__dirname + '/db/db.json', (err, data) => {
@@ -39,8 +39,13 @@ app.get('/api/notes', (req, res) => {
 app.post('/api/notes', (req, res) => {
     const userNote = req.body
     userNote.id = uuid()
-    db.push(userNote)
-    SaveNotes('./db/db.json', db);
+    fs.readFile(__dirname + '/db/db.json', (err, data) => {
+        if (err) throw err;
+        let notes = JSON.parse(data);
+        notes.push(userNote);
+        SaveNotes('./db/db.json', notes);
+        res.send(notes);
+    });
 });
 
 //API routes that filters to delete notes
@@ -51,6 +56,7 @@ app.delete('/api/notes/:id', (req, res) => {
         let notes = JSON.parse(data);
         const filteredNotes = notes.filter((note) => note.id !== id);
         SaveNotes('./db/db.json', filteredNotes);
+        res.send(filteredNotes);
     });
 });
 
@@ -61,7 +67,6 @@ function SaveNotes(destination, content) {
             ? console.error(err)
             : console.info(`\nData written to ${destination}`));
 }
-
 
 app.listen(PORT, () =>
     console.log(`App listening at http://localhost:${PORT}`)
